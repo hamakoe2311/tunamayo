@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MFC Logger データ分析ツール v3</title>
+  <title>MFC Logger データ分析ツール </title>
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <!-- SheetJS -->
@@ -14,16 +14,19 @@
     h1 { border-bottom: 2px solid #007bff; padding-bottom: 10px; color: #007bff; font-size: 1.5rem; }
     
     /* Control Panel */
-    .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; padding: 15px; background: #e9ecef; border-radius: 5px; border-left: 5px solid #007bff; }
+    .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px; margin-bottom: 20px; padding: 15px; background: #e9ecef; border-radius: 5px; border-left: 5px solid #007bff; }
     .control-group { display: flex; flex-direction: column; gap: 5px; }
     .control-group.wide { grid-column: span 2; } 
     
     label { font-weight: bold; font-size: 0.85em; color: #555; }
     input[type="file"], input[type="datetime-local"], select, input[type="number"] { padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.95em; }
     
-    /* Voltage Settings Group */
-    .volt-settings { display: flex; gap: 10px; align-items: flex-end; }
-    .volt-settings input { width: 80px; }
+    /* Axis Settings Group */
+    .axis-settings { display: flex; gap: 15px; flex-wrap: wrap; background: #fff; padding: 10px; border-radius: 4px; border: 1px solid #ddd; }
+    .axis-group { display: flex; flex-direction: column; gap: 2px; }
+    .axis-group span { font-size: 0.8em; color: #666; font-weight: bold; }
+    .range-inputs { display: flex; align-items: center; gap: 5px; }
+    .range-inputs input { width: 70px; }
     
     /* Series Config */
     .series-config { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; padding: 10px; border: 1px solid #eee; border-radius: 4px; background: #fff; }
@@ -35,7 +38,6 @@
 
     .series-item input[type="text"] { width: 90px; padding: 2px; }
     .series-item input[type="checkbox"] { cursor: pointer; }
-    /* カラーピッカーのスタイル */
     .series-item input[type="color"] { width: 30px; height: 30px; padding: 0; border: none; background: none; cursor: pointer; }
     
     /* Graph Area */
@@ -62,7 +64,7 @@
 <body>
 
 <div class="container">
-  <h1>MFC Logger CSV Viewer v5 (色変更対応)</h1>
+  <h1>MFC Logger CSV Viewer v6 (全軸固定対応)</h1>
 
   <div class="controls">
     <div class="control-group">
@@ -70,35 +72,51 @@
       <input type="datetime-local" id="startTimeInput">
     </div>
     <div class="control-group">
-      <label>2. データ間引き</label>
-      <input type="number" id="skipInterval" value="1" min="1">
-      <span class="hint">1=全表示, 10=1/10表示</span>
-    </div>
-    <div class="control-group">
-      <label>3. CSV選択</label>
-      <input type="file" id="csvFileInput" accept=".csv">
+      <label>2. データ間引き & CSV選択</label>
+      <div style="display:flex; gap:10px;">
+        <input type="number" id="skipInterval" value="1" min="1" style="width:60px;" title="間引き数">
+        <input type="file" id="csvFileInput" accept=".csv" style="flex-grow:1;">
+      </div>
+      <span class="hint">間引き: 1=全データ, 10=1/10表示</span>
     </div>
     
-    <!-- Voltage Axis Settings -->
+    <!-- Axis Settings -->
     <div class="control-group wide">
-      <label>電圧軸の設定 (単位・範囲)</label>
-      <div class="volt-settings">
-        <div>
-          <span class="hint">表示単位</span><br>
-          <select id="voltUnit" onchange="updateGraph()">
-            <option value="V" selected>V (ボルト)</option>
-            <option value="mV">mV (ミリボルト)</option>
-          </select>
+      <label>グラフ軸の範囲固定 (論文・レポート用)</label>
+      <div class="axis-settings">
+        <!-- 電圧設定 -->
+        <div class="axis-group">
+          <span>電圧軸 (左)</span>
+          <div class="range-inputs">
+            <select id="voltUnit" onchange="updateGraph()" style="width:60px;">
+              <option value="V">V</option>
+              <option value="mV">mV</option>
+            </select>
+            <input type="number" id="voltMin" step="0.1" placeholder="Min">
+            <span>〜</span>
+            <input type="number" id="voltMax" step="0.1" placeholder="Max">
+          </div>
         </div>
-        <div>
-          <span class="hint">最小値 (空欄=自動)</span><br>
-          <input type="number" id="voltMin" step="0.1" placeholder="Min">
+        <!-- 温度設定 -->
+        <div class="axis-group">
+          <span style="color:#FF6384;">温度軸 (右1 ℃)</span>
+          <div class="range-inputs">
+            <input type="number" id="tempMin" step="1" placeholder="Min">
+            <span>〜</span>
+            <input type="number" id="tempMax" step="1" placeholder="Max">
+          </div>
         </div>
-        <div>
-          <span class="hint">最大値 (空欄=自動)</span><br>
-          <input type="number" id="voltMax" step="0.1" placeholder="Max">
+        <!-- 湿度設定 -->
+        <div class="axis-group">
+          <span style="color:#4BC0C0;">湿度軸 (右2 %)</span>
+          <div class="range-inputs">
+            <input type="number" id="humMin" step="1" placeholder="Min">
+            <span>〜</span>
+            <input type="number" id="humMax" step="1" placeholder="Max">
+          </div>
         </div>
       </div>
+      <span class="hint">※空欄にすると自動調整(オートスケール)になります。</span>
     </div>
 
     <div class="control-group">
@@ -140,7 +158,7 @@
   let rawData = [];
   let chartInstance = null;
   
-  // データタイプ定義 (デフォルト色)
+  // データタイプ定義
   const TYPE_VOLT = { axis: 'y',  label: '電圧', color: '#36A2EB' }; 
   const TYPE_TEMP = { axis: 'y1', label: '温度 (℃)', color: '#FF6384' }; 
   const TYPE_HUM  = { axis: 'y2', label: '湿度 (%)', color: '#4BC0C0' }; 
@@ -182,7 +200,6 @@
       const wrapper = document.createElement('div');
       wrapper.className = `series-item type-${type}`;
       
-      // チェックボックス
       const chk = document.createElement('input');
       chk.type = 'checkbox';
       chk.id = `chk_${index}`;
@@ -191,7 +208,6 @@
       chk.dataset.originalName = cleanH;
       chk.dataset.type = type;
 
-      // カラーピッカー (初期色の決定)
       let initialColor;
       if (type === 'temp') initialColor = TYPE_TEMP.color;
       else if (type === 'hum') initialColor = TYPE_HUM.color;
@@ -204,16 +220,12 @@
       colorInput.type = 'color';
       colorInput.value = initialColor;
       colorInput.id = `color_${index}`;
-      // 色変更時即更新したい場合はコメントアウトを外す
-      // colorInput.onchange = updateGraph; 
 
-      // 名前入力
       const nameInput = document.createElement('input');
       nameInput.type = 'text';
       nameInput.value = cleanH;
       nameInput.id = `name_${index}`;
 
-      // ラベル
       const label = document.createElement('label');
       label.htmlFor = `chk_${index}`;
       let typeLabel = '(V)';
@@ -223,7 +235,7 @@
       label.style.cursor = 'pointer';
 
       wrapper.appendChild(chk);
-      wrapper.appendChild(colorInput); // 色選択を追加
+      wrapper.appendChild(colorInput);
       wrapper.appendChild(nameInput);
       wrapper.appendChild(label);
       configContainer.appendChild(wrapper);
@@ -245,13 +257,22 @@
     if (isNaN(step) || step < 1) step = 1;
     const dateFormatMode = document.getElementById('dateFormatOption').value;
 
-    // 電圧設定の取得
+    // --- 軸設定の取得 ---
     const voltUnit = document.getElementById('voltUnit').value;
     const voltMultiplier = (voltUnit === 'mV') ? 1000 : 1;
-    const vMinIn = document.getElementById('voltMin').value;
-    const vMaxIn = document.getElementById('voltMax').value;
-    const vMin = vMinIn === "" ? null : parseFloat(vMinIn);
-    const vMax = vMaxIn === "" ? null : parseFloat(vMaxIn);
+    
+    // Helper to get number or null
+    const getNum = (id) => {
+        const val = document.getElementById(id).value;
+        return val === "" ? null : parseFloat(val);
+    };
+
+    const vMin = getNum('voltMin');
+    const vMax = getNum('voltMax');
+    const tMin = getNum('tempMin');
+    const tMax = getNum('tempMax');
+    const hMin = getNum('humMin');
+    const hMax = getNum('humMax');
 
     const datasets = [];
     const labels = [];
@@ -262,7 +283,7 @@
       if (chk.checked) {
         const colIdx = parseInt(chk.dataset.colIndex);
         const nameInput = document.getElementById(`name_${colIdx}`);
-        const colorInput = document.getElementById(`color_${colIdx}`); // 色取得
+        const colorInput = document.getElementById(`color_${colIdx}`);
         const type = chk.dataset.type;
         
         let yAxisID = TYPE_VOLT.axis;
@@ -273,7 +294,7 @@
           colIdx: colIdx,
           label: nameInput.value,
           yAxisID: yAxisID,
-          color: colorInput.value, // 選択された色を使用
+          color: colorInput.value,
           type: type 
         });
       }
@@ -341,24 +362,28 @@
             title: { display: true, text: '日時' },
             ticks: { maxRotation: 45, autoSkip: true, maxTicksLimit: 20 }
           },
+          // 左軸: 電圧
           y: {
             type: 'linear', display: true, position: 'left',
             title: { display: true, text: `電圧 (${voltUnit})`, color: TYPE_VOLT.color },
             ticks: { color: TYPE_VOLT.color },
-            min: vMin,
-            max: vMax
+            min: vMin, max: vMax
           },
+          // 右軸1: 温度
           y1: {
             type: 'linear', display: true, position: 'right',
             title: { display: true, text: TYPE_TEMP.label, color: TYPE_TEMP.color },
             ticks: { color: TYPE_TEMP.color },
-            grid: { drawOnChartArea: false }
+            grid: { drawOnChartArea: false },
+            min: tMin, max: tMax
           },
+          // 右軸2: 湿度
           y2: {
             type: 'linear', display: true, position: 'right',
             title: { display: true, text: TYPE_HUM.label, color: TYPE_HUM.color },
             ticks: { color: TYPE_HUM.color },
-            grid: { drawOnChartArea: false }
+            grid: { drawOnChartArea: false },
+            min: hMin, max: hMax
           }
         },
         plugins: {
@@ -386,11 +411,8 @@
   function updateTable(activeCols, startDate, step, voltMultiplier) {
     const thead = document.getElementById('tableHeader');
     const tbody = document.getElementById('tableBody');
-    
     let headerHTML = '<th>日時</th><th>経過秒(s)</th>';
-    activeCols.forEach(col => {
-      headerHTML += `<th>${col.label}</th>`;
-    });
+    activeCols.forEach(col => { headerHTML += `<th>${col.label}</th>`; });
     thead.innerHTML = headerHTML;
 
     let bodyHTML = '';
@@ -401,7 +423,6 @@
       const timeSec = row[0];
       const dt = new Date(startDate.getTime() + timeSec * 1000);
       bodyHTML += `<tr><td>${dt.toLocaleString()}</td><td>${timeSec}</td>`;
-      
       activeCols.forEach(col => {
         let val = row[col.colIdx];
         if (col.type === 'volt') val = (val * voltMultiplier).toFixed(3);
@@ -426,7 +447,6 @@
     const ws_data = [];
     const startDate = new Date(document.getElementById('startTimeInput').value);
     const configItems = document.querySelectorAll('.series-config input[type="checkbox"]');
-    
     const voltUnit = document.getElementById('voltUnit').value;
     const voltMultiplier = (voltUnit === 'mV') ? 1000 : 1;
 
@@ -438,12 +458,10 @@
         const colIdx = parseInt(chk.dataset.colIndex);
         const name = document.getElementById(`name_${colIdx}`).value;
         const type = chk.dataset.type;
-        
         let nameWithUnit = name;
         if(type === 'volt') nameWithUnit += ` [${voltUnit}]`;
         else if(type === 'temp') nameWithUnit += ' [℃]';
         else if(type === 'hum') nameWithUnit += ' [%]';
-
         headers.push(nameWithUnit);
         activeCols.push({ colIdx, type });
       }
