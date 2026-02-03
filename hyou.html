@@ -1,488 +1,588 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MFC Logger データ分析ツール </title>
-  <!-- Chart.js -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <!-- SheetJS -->
-  <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
-  <style>
-    body { font-family: "Helvetica Neue", Arial, sans-serif; padding: 20px; background-color: #f5f5f5; color: #333; }
-    .container { max-width: 1280px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-    h1 { border-bottom: 2px solid #007bff; padding-bottom: 10px; color: #007bff; font-size: 1.5rem; }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MFC Logger データ分析ツール v8.0 (カラー変更対応版)</title>
     
-    /* Control Panel */
-    .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px; margin-bottom: 20px; padding: 15px; background: #e9ecef; border-radius: 5px; border-left: 5px solid #007bff; }
-    .control-group { display: flex; flex-direction: column; gap: 5px; }
-    .control-group.wide { grid-column: span 2; } 
-    
-    label { font-weight: bold; font-size: 0.85em; color: #555; }
-    input[type="file"], input[type="datetime-local"], select, input[type="number"] { padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.95em; }
-    
-    /* Axis Settings Group */
-    .axis-settings { display: flex; gap: 15px; flex-wrap: wrap; background: #fff; padding: 10px; border-radius: 4px; border: 1px solid #ddd; }
-    .axis-group { display: flex; flex-direction: column; gap: 2px; }
-    .axis-group span { font-size: 0.8em; color: #666; font-weight: bold; }
-    .range-inputs { display: flex; align-items: center; gap: 5px; }
-    .range-inputs input { width: 70px; }
-    
-    /* Series Config */
-    .series-config { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; padding: 10px; border: 1px solid #eee; border-radius: 4px; background: #fff; }
-    .series-item { padding: 5px 10px; border-radius: 4px; border: 1px solid #ddd; display: flex; align-items: center; gap: 5px; font-size: 0.9em; }
-    
-    .type-volt { background: #f0f8ff; border-left: 3px solid #36A2EB; }
-    .type-temp { background: #fff0f0; border-left: 3px solid #FF6384; }
-    .type-hum  { background: #f0fff4; border-left: 3px solid #4BC0C0; }
+    <!-- Chart.js and Plugins -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
+    <!-- SheetJS -->
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 
-    .series-item input[type="text"] { width: 90px; padding: 2px; }
-    .series-item input[type="checkbox"] { cursor: pointer; }
-    .series-item input[type="color"] { width: 30px; height: 30px; padding: 0; border: none; background: none; cursor: pointer; }
-    
-    /* Graph Area */
-    .chart-container { position: relative; height: 500px; width: 100%; margin-bottom: 30px; background: #fff; }
-    
-    /* Buttons */
-    .btn-group { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
-    button { cursor: pointer; padding: 10px 20px; border: none; border-radius: 4px; font-weight: bold; transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-    button:active { transform: translateY(1px); box-shadow: none; }
-    .btn-primary { background-color: #007bff; color: white; }
-    .btn-success { background-color: #28a745; color: white; }
-    .btn-secondary { background-color: #6c757d; color: white; }
-    
-    /* Table */
-    .table-container { overflow-x: auto; max-height: 400px; border: 1px solid #ccc; margin-top: 20px; }
-    table { width: 100%; border-collapse: collapse; font-size: 0.85em; white-space: nowrap; }
-    th, td { padding: 6px 10px; border: 1px solid #ddd; text-align: right; }
-    th { background-color: #f1f3f5; position: sticky; top: 0; z-index: 10; text-align: center; font-weight: bold; }
-    tr:nth-child(even) { background-color: #f9f9f9; }
-    
-    .hint { font-size: 0.8em; color: #666; margin-top: 2px; }
-  </style>
+    <style>
+        body { font-family: "Helvetica Neue", Arial, sans-serif; padding: 20px; background-color: #f0f2f5; color: #333; }
+        .container { max-width: 1400px; margin: 0 auto; background: white; padding: 25px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h1 { border-bottom: 3px solid #007bff; padding-bottom: 15px; color: #007bff; font-size: 1.8rem; margin-top: 0; }
+
+        /* Drop Zone */
+        .drop-zone {
+            border: 2px dashed #007bff; border-radius: 10px; padding: 30px; text-align: center; 
+            background: #f8fbff; transition: 0.3s; cursor: pointer; margin-bottom: 20px;
+        }
+        .drop-zone:hover, .drop-zone.dragover { background: #e2efff; border-color: #0056b3; }
+        .drop-zone p { margin: 0; font-size: 1.1em; color: #555; font-weight: bold; }
+        
+        /* Controls */
+        .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 25px; padding: 20px; background: #e9ecef; border-radius: 8px; }
+        .control-group { display: flex; flex-direction: column; gap: 5px; }
+        .control-group label { font-weight: bold; font-size: 0.85em; color: #495057; }
+        input, select { padding: 6px 8px; border: 1px solid #ced4da; border-radius: 4px; font-size: 0.9em; }
+        .range-inputs { display: flex; gap: 5px; }
+        .range-inputs input { width: 50%; }
+
+        /* Series Config (Table Style) - レイアウト変更: 4列 [Check, Color, Name, Value] */
+        .series-config-container { margin-bottom: 20px; border: 1px solid #ddd; border-radius: 6px; overflow: hidden; }
+        
+        /* グリッド定義: 左から 40px, 50px, 残り, 100px */
+        .series-header { display: grid; grid-template-columns: 40px 50px 1fr 100px; background: #f1f3f5; padding: 10px; font-weight: bold; font-size: 0.9em; border-bottom: 1px solid #ddd; }
+        .series-list { max-height: 300px; overflow-y: auto; }
+        .series-item { display: grid; grid-template-columns: 40px 50px 1fr 100px; padding: 8px 10px; border-bottom: 1px solid #eee; align-items: center; gap: 10px; font-size: 0.9em; }
+        .series-item:hover { background-color: #f8f9fa; }
+        
+        .series-item input[type="text"] { width: 100%; padding: 6px; box-sizing: border-box; }
+        .series-item input[type="color"] { border: none; width: 100%; height: 32px; padding: 0; background: none; cursor: pointer; }
+        .col-check { display: flex; justify-content: center; align-items: center; }
+
+        /* Color Indicators */
+        .type-volt { border-left: 4px solid #36A2EB; }
+        .type-temp { border-left: 4px solid #FF6384; }
+        .type-hum  { border-left: 4px solid #4BC0C0; }
+
+        /* Chart Area */
+        .chart-wrapper { position: relative; height: 600px; width: 100%; background: #fff; border: 1px solid #ddd; border-radius: 4px; padding: 10px; }
+        .chart-hint { display: flex; justify-content: space-between; font-size: 0.85em; color: #666; margin-bottom: 5px; }
+
+        /* Stats Table */
+        .stats-container { margin-top: 20px; overflow-x: auto; }
+        table.stats-table { width: 100%; border-collapse: collapse; font-size: 0.9em; }
+        table.stats-table th, table.stats-table td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+        table.stats-table th { background-color: #f8f9fa; }
+
+        /* Buttons */
+        .btn-group { display: flex; gap: 10px; margin: 20px 0; flex-wrap: wrap; }
+        button { cursor: pointer; padding: 10px 24px; border: none; border-radius: 4px; font-weight: bold; color: white; transition: 0.2s; }
+        button:hover { opacity: 0.9; transform: translateY(-1px); }
+        .btn-primary { background-color: #007bff; }
+        .btn-success { background-color: #28a745; }
+        .btn-secondary { background-color: #6c757d; }
+        .btn-reset { background-color: #17a2b8; }
+
+        .hint { font-size: 0.8em; color: #666; }
+        .mode-select { background-color: #fff3cd; border-color: #ffecb5; }
+    </style>
 </head>
 <body>
 
 <div class="container">
-  <h1>MFC Logger CSV Viewer v3</h1>
+    <h1>MFC Logger CSV Viewer v8.0</h1>
 
-  <div class="controls">
-    <div class="control-group">
-      <label>1. 測定開始日時</label>
-      <input type="datetime-local" id="startTimeInput">
+    <!-- Drop Zone -->
+    <div id="dropZone" class="drop-zone" onclick="document.getElementById('csvFileInput').click()">
+        <p>ここにCSVファイルをドラッグ＆ドロップ</p>
+        <span>またはクリックしてファイルを選択</span>
+        <input type="file" id="csvFileInput" accept=".csv" style="display:none">
     </div>
-    <div class="control-group">
-      <label>2. データ間引き & CSV選択</label>
-      <div style="display:flex; gap:10px;">
-        <input type="number" id="skipInterval" value="1" min="1" style="width:60px;" title="間引き数">
-        <input type="file" id="csvFileInput" accept=".csv" style="flex-grow:1;">
-      </div>
-      <span class="hint">間引き: 1=全データ, 10=1/10表示</span>
-    </div>
-    
-    <!-- Axis Settings -->
-    <div class="control-group wide">
-      <label>グラフ軸の範囲固定 (論文・レポート用)</label>
-      <div class="axis-settings">
-        <!-- 電圧設定 -->
-        <div class="axis-group">
-          <span>電圧軸 (左)</span>
-          <div class="range-inputs">
-            <select id="voltUnit" onchange="updateGraph()" style="width:60px;">
-              <option value="V">V</option>
-              <option value="mV">mV</option>
+
+    <div class="controls">
+        <div class="control-group">
+            <label>1. 測定開始日時</label>
+            <input type="datetime-local" id="startTimeInput">
+        </div>
+        <div class="control-group">
+            <label>2. データ間引き</label>
+            <input type="number" id="skipInterval" value="1" min="1">
+            <span class="hint">大きいほど描画が高速化</span>
+        </div>
+        <div class="control-group">
+            <label>マウス操作モード</label>
+            <select id="zoomMode" onchange="changeZoomMode()" class="mode-select">
+                <option value="pan">移動・ホイール拡大</option>
+                <option value="drag">範囲選択ズーム (ドラッグ)</option>
             </select>
-            <input type="number" id="voltMin" step="0.1" placeholder="Min">
-            <span>〜</span>
-            <input type="number" id="voltMax" step="0.1" placeholder="Max">
-          </div>
         </div>
-        <!-- 温度設定 -->
-        <div class="axis-group">
-          <span style="color:#FF6384;">温度軸 (右1 ℃)</span>
-          <div class="range-inputs">
-            <input type="number" id="tempMin" step="1" placeholder="Min">
-            <span>〜</span>
-            <input type="number" id="tempMax" step="1" placeholder="Max">
-          </div>
+        
+        <!-- Ranges -->
+        <div class="control-group">
+            <label>電圧軸範囲 (V/mV)</label>
+            <div class="range-inputs">
+                <input type="number" id="voltMin" step="0.1" placeholder="Min">
+                <input type="number" id="voltMax" step="0.1" placeholder="Max">
+            </div>
         </div>
-        <!-- 湿度設定 -->
-        <div class="axis-group">
-          <span style="color:#4BC0C0;">湿度軸 (右2 %)</span>
-          <div class="range-inputs">
-            <input type="number" id="humMin" step="1" placeholder="Min">
-            <span>〜</span>
-            <input type="number" id="humMax" step="1" placeholder="Max">
-          </div>
+        <div class="control-group">
+            <label>温度軸範囲 (℃)</label>
+            <div class="range-inputs">
+                <input type="number" id="tempMin" step="1" placeholder="Min">
+                <input type="number" id="tempMax" step="1" placeholder="Max">
+            </div>
         </div>
-      </div>
-      <span class="hint">※空欄にすると自動調整(オートスケール)になります。</span>
+        <div class="control-group">
+            <label>湿度軸範囲 (%)</label>
+            <div class="range-inputs">
+                <input type="number" id="humMin" step="1" placeholder="Min">
+                <input type="number" id="humMax" step="1" placeholder="Max">
+            </div>
+        </div>
+        <div class="control-group">
+            <label>電圧単位</label>
+            <select id="voltUnit" onchange="updateGraph()">
+                <option value="V" selected>V (ボルト)</option>
+                <option value="mV">mV (ミリボルト)</option>
+            </select>
+        </div>
     </div>
 
-    <div class="control-group">
-      <label>日時表示形式</label>
-      <select id="dateFormatOption" onchange="updateGraph()">
-        <option value="smart" selected>スマート</option>
-        <option value="full">常に日付表示</option>
-        <option value="time">時間のみ</option>
-      </select>
+    <div id="configArea" style="display:none;">
+        <h3>データの選択・表示調整</h3>
+        
+        <div class="series-config-container">
+            <div class="series-header">
+                <div class="col-check">表示</div>
+                <div>色</div>
+                <div>データ系列名</div>
+                <div>現在値(生)</div>
+            </div>
+            <div id="seriesList" class="series-list"></div>
+        </div>
+
+        <div class="btn-group">
+            <button onclick="updateGraph()" class="btn-primary">グラフ更新</button>
+            <button onclick="resetZoom()" class="btn-reset">ズームリセット</button>
+            <button onclick="downloadImage()" class="btn-secondary">画像保存</button>
+            <button onclick="exportExcel()" class="btn-success">Excel保存 (生データ)</button>
+        </div>
+
+        <div class="chart-hint">
+            <span id="operationHint">操作: ドラッグで移動、ホイールで拡大縮小</span>
+            <span>ダブルクリックで全体表示に戻る</span>
+        </div>
+        <div class="chart-wrapper">
+            <canvas id="myChart"></canvas>
+        </div>
+
+        <h3>統計情報 (現在の表示範囲)</h3>
+        <div class="stats-container">
+            <table class="stats-table">
+                <thead>
+                    <tr id="statsHeader"></tr>
+                </thead>
+                <tbody>
+                    <tr id="statsMin"></tr>
+                    <tr id="statsMax"></tr>
+                    <tr id="statsAvg"></tr>
+                </tbody>
+            </table>
+        </div>
     </div>
-  </div>
-
-  <!-- 表示・名称設定エリア -->
-  <div id="seriesConfigContainer" style="display:none;">
-    <label style="display:block; margin-bottom:5px;">データの選択・名称・色変更:</label>
-    <div id="seriesConfig" class="series-config"></div>
-    
-    <div class="btn-group">
-      <button onclick="updateGraph()" class="btn-primary">グラフ・表を更新</button>
-      <button onclick="downloadImage()" class="btn-secondary">画像を保存</button>
-      <button onclick="exportExcel()" class="btn-success">Excel保存</button>
-    </div>
-  </div>
-
-  <div class="chart-container">
-    <canvas id="myChart"></canvas>
-  </div>
-
-  <h3>データ詳細 (最新500件)</h3>
-  <div class="table-container">
-    <table id="dataTable">
-      <thead><tr id="tableHeader"></tr></thead>
-      <tbody id="tableBody"></tbody>
-    </table>
-  </div>
 </div>
 
 <script>
-  let rawData = [];
-  let chartInstance = null;
-  
-  // データタイプ定義
-  const TYPE_VOLT = { axis: 'y',  label: '電圧', color: '#36A2EB' }; 
-  const TYPE_TEMP = { axis: 'y1', label: '温度 (℃)', color: '#FF6384' }; 
-  const TYPE_HUM  = { axis: 'y2', label: '湿度 (%)', color: '#4BC0C0' }; 
-  const DEFAULT_VOLT_COLORS = ['#36A2EB', '#9966FF', '#FF9F40', '#FFCD56', '#C9CBCF', '#4BC0C0', '#FF6384'];
-
-  // 初期日時設定
-  const now = new Date();
-  now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-  document.getElementById('startTimeInput').value = now.toISOString().slice(0, 16);
-
-  document.getElementById('csvFileInput').addEventListener('change', function(e) {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = function(event) { parseCSV(event.target.result); };
-    reader.readAsText(file);
-  });
-
-  function parseCSV(csvText) {
-    const lines = csvText.split(/\r\n|\n/);
-    rawData = [];
-    const headers = lines[0].split(',');
+    let rawData = [];
+    let chartInstance = null;
+    let headers = [];
+    let activeSeries = []; 
     
-    const configWrapper = document.getElementById('seriesConfigContainer');
-    const configContainer = document.getElementById('seriesConfig');
-    configContainer.innerHTML = '';
-    configWrapper.style.display = 'block';
+    // カラーパレット (Hexコード)
+    const COLORS = ['#36A2EB', '#FF9F40', '#9966FF', '#FFCD56', '#C9CBCF', '#4BC0C0', '#FF6384'];
 
-    let voltColorIdx = 0;
+    // 初期化
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    document.getElementById('startTimeInput').value = now.toISOString().slice(0, 16);
 
-    headers.forEach((h, index) => {
-      const cleanH = h.trim();
-      if (cleanH === 'Time_sec' || cleanH === 'Mode' || cleanH === '') return;
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('csvFileInput');
 
-      let type = 'volt';
-      if (cleanH.includes('Temp')) type = 'temp';
-      else if (cleanH.includes('Hum')) type = 'hum';
-
-      const wrapper = document.createElement('div');
-      wrapper.className = `series-item type-${type}`;
-      
-      const chk = document.createElement('input');
-      chk.type = 'checkbox';
-      chk.id = `chk_${index}`;
-      chk.checked = true; 
-      chk.dataset.colIndex = index;
-      chk.dataset.originalName = cleanH;
-      chk.dataset.type = type;
-
-      let initialColor;
-      if (type === 'temp') initialColor = TYPE_TEMP.color;
-      else if (type === 'hum') initialColor = TYPE_HUM.color;
-      else {
-        initialColor = DEFAULT_VOLT_COLORS[voltColorIdx % DEFAULT_VOLT_COLORS.length];
-        voltColorIdx++;
-      }
-
-      const colorInput = document.createElement('input');
-      colorInput.type = 'color';
-      colorInput.value = initialColor;
-      colorInput.id = `color_${index}`;
-
-      const nameInput = document.createElement('input');
-      nameInput.type = 'text';
-      nameInput.value = cleanH;
-      nameInput.id = `name_${index}`;
-
-      const label = document.createElement('label');
-      label.htmlFor = `chk_${index}`;
-      let typeLabel = '(V)';
-      if(type === 'temp') typeLabel = '(℃)';
-      if(type === 'hum') typeLabel = '(%)';
-      label.textContent = typeLabel;
-      label.style.cursor = 'pointer';
-
-      wrapper.appendChild(chk);
-      wrapper.appendChild(colorInput);
-      wrapper.appendChild(nameInput);
-      wrapper.appendChild(label);
-      configContainer.appendChild(wrapper);
+    // イベントリスナー
+    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover')); 
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('dragover');
+        if(e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
     });
+    fileInput.addEventListener('change', (e) => { if(e.target.files.length) handleFile(e.target.files[0]); });
+    
+    document.getElementById('myChart').addEventListener('dblclick', resetZoom);
 
-    for (let i = 1; i < lines.length; i++) {
-      if (lines[i].trim() === '') continue;
-      const row = lines[i].split(',').map(v => parseFloat(v));
-      if (row.length === headers.length) rawData.push(row);
+    function handleFile(file) {
+        dropZone.querySelector('p').textContent = file.name;
+        const reader = new FileReader();
+        reader.onload = function(event) { parseCSV(event.target.result); };
+        reader.readAsText(file);
     }
-    updateGraph();
-  }
 
-  function updateGraph() {
-    if (rawData.length === 0) return;
-
-    const startDate = new Date(document.getElementById('startTimeInput').value);
-    let step = parseInt(document.getElementById('skipInterval').value);
-    if (isNaN(step) || step < 1) step = 1;
-    const dateFormatMode = document.getElementById('dateFormatOption').value;
-
-    // --- 軸設定の取得 ---
-    const voltUnit = document.getElementById('voltUnit').value;
-    const voltMultiplier = (voltUnit === 'mV') ? 1000 : 1;
-    
-    // Helper to get number or null
-    const getNum = (id) => {
-        const val = document.getElementById(id).value;
-        return val === "" ? null : parseFloat(val);
-    };
-
-    const vMin = getNum('voltMin');
-    const vMax = getNum('voltMax');
-    const tMin = getNum('tempMin');
-    const tMax = getNum('tempMax');
-    const hMin = getNum('humMin');
-    const hMax = getNum('humMax');
-
-    const datasets = [];
-    const labels = [];
-    const configItems = document.querySelectorAll('.series-config input[type="checkbox"]');
-    const activeCols = [];
-    
-    configItems.forEach((chk) => {
-      if (chk.checked) {
-        const colIdx = parseInt(chk.dataset.colIndex);
-        const nameInput = document.getElementById(`name_${colIdx}`);
-        const colorInput = document.getElementById(`color_${colIdx}`);
-        const type = chk.dataset.type;
+    function parseCSV(csvText) {
+        const lines = csvText.split(/\r\n|\n/);
+        rawData = [];
+        headers = lines[0].split(',').map(h => h.trim());
         
-        let yAxisID = TYPE_VOLT.axis;
-        if (type === 'temp') yAxisID = TYPE_TEMP.axis;
-        if (type === 'hum') yAxisID = TYPE_HUM.axis;
-
-        activeCols.push({
-          colIdx: colIdx,
-          label: nameInput.value,
-          yAxisID: yAxisID,
-          color: colorInput.value,
-          type: type 
-        });
-      }
-    });
-
-    activeCols.forEach(col => {
-      datasets.push({
-        label: col.label,
-        data: [],
-        borderColor: col.color,
-        backgroundColor: col.color,
-        yAxisID: col.yAxisID, 
-        pointRadius: 0,
-        borderWidth: 2,
-        fill: false,
-        tension: 0.1
-      });
-    });
-
-    let prevDateObj = null;
-    for (let i = 0; i < rawData.length; i += step) {
-      const row = rawData[i];
-      const timeSec = row[0]; 
-      const currentDateObj = new Date(startDate.getTime() + timeSec * 1000);
-      
-      let labelStr = "";
-      const timeStr = currentDateObj.toLocaleTimeString('ja-JP');
-      const dateStr = currentDateObj.toLocaleDateString('ja-JP');
-
-      if (dateFormatMode === 'full') labelStr = `${dateStr} ${timeStr}`;
-      else if (dateFormatMode === 'time') labelStr = timeStr;
-      else {
-        if (prevDateObj === null || prevDateObj.getDate() !== currentDateObj.getDate()) {
-          labelStr = `${dateStr} ${timeStr}`;
-        } else {
-          labelStr = timeStr;
+        for (let i = 1; i < lines.length; i++) {
+            if (lines[i].trim() === '') continue;
+            const row = lines[i].split(',').map(v => parseFloat(v));
+            if (row.length === headers.length) rawData.push(row);
         }
-      }
-      prevDateObj = currentDateObj;
-      labels.push(labelStr);
 
-      activeCols.forEach((col, idx) => {
-        let val = row[col.colIdx];
-        if (col.type === 'volt') {
-          val = val * voltMultiplier;
-        }
-        datasets[idx].data.push(val);
-      });
+        generateConfigTable();
+        document.getElementById('configArea').style.display = 'block';
+        updateGraph();
     }
 
-    const ctx = document.getElementById('myChart').getContext('2d');
-    if (chartInstance) chartInstance.destroy();
+    function generateConfigTable() {
+        const list = document.getElementById('seriesList');
+        list.innerHTML = '';
 
-    chartInstance = new Chart(ctx, {
-      type: 'line',
-      data: { labels: labels, datasets: datasets },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        interaction: { mode: 'index', intersect: false },
-        animation: false,
-        scales: {
-          x: {
-            display: true,
-            title: { display: true, text: '日時' },
-            ticks: { maxRotation: 45, autoSkip: true, maxTicksLimit: 20 }
-          },
-          // 左軸: 電圧
-          y: {
-            type: 'linear', display: true, position: 'left',
-            title: { display: true, text: `電圧 (${voltUnit})`, color: TYPE_VOLT.color },
-            ticks: { color: TYPE_VOLT.color },
-            min: vMin, max: vMax
-          },
-          // 右軸1: 温度
-          y1: {
-            type: 'linear', display: true, position: 'right',
-            title: { display: true, text: TYPE_TEMP.label, color: TYPE_TEMP.color },
-            ticks: { color: TYPE_TEMP.color },
-            grid: { drawOnChartArea: false },
-            min: tMin, max: tMax
-          },
-          // 右軸2: 湿度
-          y2: {
-            type: 'linear', display: true, position: 'right',
-            title: { display: true, text: TYPE_HUM.label, color: TYPE_HUM.color },
-            ticks: { color: TYPE_HUM.color },
-            grid: { drawOnChartArea: false },
-            min: hMin, max: hMax
-          }
-        },
-        plugins: {
-          tooltip: {
-            callbacks: {
-              title: function(context) { return context[0].label; },
-              label: function(context) {
-                let label = context.dataset.label || '';
-                if (label) label += ': ';
-                label += context.parsed.y;
-                if(context.dataset.yAxisID === 'y') label += ` ${voltUnit}`;
-                else if(context.dataset.yAxisID === 'y1') label += ' ℃';
-                else if(context.dataset.yAxisID === 'y2') label += ' %';
-                return label;
-              }
+        // 電圧用カラーのローテーション用インデックス
+        let voltColorCount = 0;
+
+        headers.forEach((h, index) => {
+            if (h === 'Time_sec' || h === 'Mode' || h === '') return;
+
+            let type = 'volt';
+            if (h.includes('Temp')) type = 'temp';
+            else if (h.includes('Hum')) type = 'hum';
+
+            // デフォルト色の決定
+            let defaultColor = '#000000';
+            if (type === 'temp') {
+                defaultColor = '#FF6384'; // 赤系
+            } else if (type === 'hum') {
+                defaultColor = '#4BC0C0'; // 緑系
+            } else {
+                defaultColor = COLORS[voltColorCount % COLORS.length];
+                voltColorCount++;
             }
-          }
-        }
-      }
-    });
 
-    updateTable(activeCols, startDate, step, voltMultiplier);
-  }
+            const div = document.createElement('div');
+            div.className = `series-item type-${type}`;
+            
+            // Checkbox
+            const checkDiv = document.createElement('div');
+            checkDiv.className = 'col-check';
+            const chk = document.createElement('input');
+            chk.type = 'checkbox';
+            chk.id = `chk_${index}`; 
+            chk.checked = true;
+            chk.dataset.idx = index;
+            chk.dataset.type = type;
+            checkDiv.appendChild(chk);
 
-  function updateTable(activeCols, startDate, step, voltMultiplier) {
-    const thead = document.getElementById('tableHeader');
-    const tbody = document.getElementById('tableBody');
-    let headerHTML = '<th>日時</th><th>経過秒(s)</th>';
-    activeCols.forEach(col => { headerHTML += `<th>${col.label}</th>`; });
-    thead.innerHTML = headerHTML;
+            // Color Picker (New)
+            const colorInput = document.createElement('input');
+            colorInput.type = 'color';
+            colorInput.value = defaultColor;
+            colorInput.id = `color_${index}`;
+            // 色変更時に即更新
+            colorInput.onchange = updateGraph;
 
-    let bodyHTML = '';
-    let count = 0;
-    for(let i = rawData.length - 1; i >= 0; i -= step) {
-      if (count++ > 500) break;
-      const row = rawData[i];
-      const timeSec = row[0];
-      const dt = new Date(startDate.getTime() + timeSec * 1000);
-      bodyHTML += `<tr><td>${dt.toLocaleString()}</td><td>${timeSec}</td>`;
-      activeCols.forEach(col => {
-        let val = row[col.colIdx];
-        if (col.type === 'volt') val = (val * voltMultiplier).toFixed(3);
-        bodyHTML += `<td>${val}</td>`;
-      });
-      bodyHTML += `</tr>`;
+            // Name Input
+            const nameInput = document.createElement('input');
+            nameInput.type = 'text';
+            nameInput.value = h;
+            nameInput.id = `name_${index}`;
+
+            // Current Value
+            const lastValDiv = document.createElement('div');
+            const lastRow = rawData[rawData.length-1];
+            lastValDiv.textContent = lastRow ? lastRow[index] : '-';
+            lastValDiv.style.fontSize = '0.8em';
+            lastValDiv.style.textAlign = 'right';
+
+            div.appendChild(checkDiv);
+            div.appendChild(colorInput);
+            div.appendChild(nameInput);
+            div.appendChild(lastValDiv);
+            list.appendChild(div);
+        });
     }
-    tbody.innerHTML = bodyHTML;
-  }
 
-  function downloadImage() {
-    if (!chartInstance) return;
-    const link = document.createElement('a');
-    link.download = 'graph_image.png';
-    link.href = document.getElementById('myChart').toDataURL('image/png', 1.0);
-    link.click();
-  }
+    function updateGraph() {
+        if (!rawData.length) return;
 
-  function exportExcel() {
-    if(!rawData.length) { alert("データがありません"); return; }
-    const wb = XLSX.utils.book_new();
-    const ws_data = [];
-    const startDate = new Date(document.getElementById('startTimeInput').value);
-    const configItems = document.querySelectorAll('.series-config input[type="checkbox"]');
-    const voltUnit = document.getElementById('voltUnit').value;
-    const voltMultiplier = (voltUnit === 'mV') ? 1000 : 1;
+        const startDate = new Date(document.getElementById('startTimeInput').value);
+        const startTime = startDate.getTime();
+        let step = parseInt(document.getElementById('skipInterval').value) || 1;
+        
+        // Voltage Params
+        const voltUnit = document.getElementById('voltUnit').value;
+        const globalVoltMult = (voltUnit === 'mV') ? 1000 : 1;
+        const vMin = document.getElementById('voltMin').value;
+        const vMax = document.getElementById('voltMax').value;
 
-    const headers = ["日時", "経過秒(s)"];
-    const activeCols = [];
-    
-    configItems.forEach(chk => {
-      if(chk.checked) {
-        const colIdx = parseInt(chk.dataset.colIndex);
-        const name = document.getElementById(`name_${colIdx}`).value;
-        const type = chk.dataset.type;
-        let nameWithUnit = name;
-        if(type === 'volt') nameWithUnit += ` [${voltUnit}]`;
-        else if(type === 'temp') nameWithUnit += ' [℃]';
-        else if(type === 'hum') nameWithUnit += ' [%]';
-        headers.push(nameWithUnit);
-        activeCols.push({ colIdx, type });
-      }
-    });
-    ws_data.push(headers);
+        // Temp/Hum Params
+        const tMin = document.getElementById('tempMin').value;
+        const tMax = document.getElementById('tempMax').value;
+        const hMin = document.getElementById('humMin').value;
+        const hMax = document.getElementById('humMax').value;
 
-    rawData.forEach(row => {
-      const timeSec = row[0];
-      const dt = new Date(startDate.getTime() + timeSec * 1000);
-      const line = [dt.toLocaleString(), timeSec];
-      activeCols.forEach(col => {
-        let val = row[col.colIdx];
-        if(col.type === 'volt') val *= voltMultiplier;
-        line.push(val); 
-      });
-      ws_data.push(line);
-    });
-    const ws = XLSX.utils.aoa_to_sheet(ws_data);
-    XLSX.utils.book_append_sheet(wb, ws, "LogData");
-    XLSX.writeFile(wb, "measurement_data.xlsx");
-  }
+        const datasets = [];
+        activeSeries = []; 
+
+        const inputs = document.querySelectorAll('.series-list .series-item');
+        inputs.forEach(item => {
+            const chk = item.querySelector('input[type="checkbox"]');
+            if (!chk.checked) return;
+
+            const idx = parseInt(chk.dataset.idx);
+            const nameEl = document.getElementById(`name_${idx}`);
+            const colorEl = document.getElementById(`color_${idx}`);
+            
+            const name = nameEl.value;
+            const color = colorEl.value; // カラーピッカーの値を取得
+            const type = chk.dataset.type;
+
+            let axisId = 'y';
+            if (type === 'temp') axisId = 'y1';
+            if (type === 'hum') axisId = 'y2';
+
+            const dataPoints = [];
+
+            // データ間引き・抽出処理
+            for (let i = 0; i < rawData.length; i += step) {
+                let chunkEnd = Math.min(i + step, rawData.length);
+                let minVal = Infinity, maxVal = -Infinity;
+                let minTime = 0, maxTime = 0;
+
+                for (let j = i; j < chunkEnd; j++) {
+                    let val = rawData[j][idx];
+                    let t = startTime + rawData[j][0] * 1000;
+                    if (val < minVal) { minVal = val; minTime = t; }
+                    if (val > maxVal) { maxVal = val; maxTime = t; }
+                }
+
+                let baseMult = (type === 'volt') ? globalVoltMult : 1;
+                let plotMin = minVal * baseMult;
+                let plotMax = maxVal * baseMult;
+
+                if (minTime === maxTime) {
+                    dataPoints.push({ x: minTime, y: plotMin });
+                } else if (minTime < maxTime) {
+                    dataPoints.push({ x: minTime, y: plotMin });
+                    dataPoints.push({ x: maxTime, y: plotMax });
+                } else {
+                    dataPoints.push({ x: maxTime, y: plotMax });
+                    dataPoints.push({ x: minTime, y: plotMin });
+                }
+            }
+
+            datasets.push({
+                label: name,
+                data: dataPoints,
+                borderColor: color,     // ユーザー指定の色
+                backgroundColor: color, // ユーザー指定の色
+                borderWidth: 1.5,
+                pointRadius: 0, 
+                pointHoverRadius: 4,
+                yAxisID: axisId,
+                tension: 0,
+                _rawIdx: idx,
+                _type: type,
+                _baseMult: (type === 'volt') ? globalVoltMult : 1
+            });
+            activeSeries.push(datasets[datasets.length-1]);
+        });
+
+        const ctx = document.getElementById('myChart').getContext('2d');
+        if (chartInstance) chartInstance.destroy();
+
+        const zoomMode = document.getElementById('zoomMode').value;
+        const isDrag = (zoomMode === 'drag');
+
+        chartInstance = new Chart(ctx, {
+            type: 'line',
+            data: { datasets: datasets },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'nearest', axis: 'x', intersect: false },
+                plugins: {
+                    zoom: {
+                        pan: { enabled: !isDrag, mode: 'x' },
+                        zoom: { 
+                            wheel: { enabled: !isDrag }, 
+                            drag: { enabled: isDrag, backgroundColor: 'rgba(0,123,255,0.3)' }, 
+                            pinch: { enabled: !isDrag }, 
+                            mode: 'x' 
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) label += ': ';
+                                label += context.parsed.y.toFixed(3);
+                                const axis = context.dataset.yAxisID;
+                                if(axis === 'y') label += ` ${voltUnit}`;
+                                else if(axis === 'y1') label += ' ℃';
+                                else if(axis === 'y2') label += ' %';
+                                return label;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        type: 'time',
+                        time: { displayFormats: { hour: 'MM/dd HH:mm', day: 'MM/dd', minute: 'HH:mm' }, tooltipFormat: 'yyyy/MM/dd HH:mm:ss' },
+                        title: { display: true, text: '日時' },
+                        ticks: { autoSkip: true, maxRotation: 0 }
+                    },
+                    y: {
+                        type: 'linear', display: true, position: 'left',
+                        title: { display: true, text: `電圧 (${voltUnit})`, color: '#36A2EB' },
+                        min: vMin ? parseFloat(vMin) : undefined,
+                        max: vMax ? parseFloat(vMax) : undefined
+                    },
+                    y1: {
+                        type: 'linear', display: true, position: 'right',
+                        grid: { drawOnChartArea: false },
+                        title: { display: true, text: '温度 (℃)', color: '#FF6384' },
+                        min: tMin ? parseFloat(tMin) : undefined,
+                        max: tMax ? parseFloat(tMax) : undefined
+                    },
+                    y2: {
+                        type: 'linear', display: true, position: 'right',
+                        grid: { drawOnChartArea: false },
+                        title: { display: true, text: '湿度 (%)', color: '#4BC0C0' },
+                        min: hMin ? parseFloat(hMin) : undefined,
+                        max: hMax ? parseFloat(hMax) : undefined
+                    }
+                }
+            }
+        });
+
+        chartInstance.canvas.addEventListener('chartjs:plugin:zoom:reset', () => calculateStats(activeSeries));
+        
+        chartInstance.options.plugins.zoom.zoom.onZoomComplete = () => calculateStats(activeSeries);
+        chartInstance.options.plugins.zoom.pan.onPanComplete = () => calculateStats(activeSeries);
+
+        calculateStats(activeSeries);
+    }
+
+    function changeZoomMode() {
+        if(!chartInstance) return;
+        
+        const mode = document.getElementById('zoomMode').value;
+        const hint = document.getElementById('operationHint');
+        
+        if (mode === 'drag') {
+            chartInstance.options.plugins.zoom.pan.enabled = false;
+            chartInstance.options.plugins.zoom.zoom.wheel.enabled = false;
+            chartInstance.options.plugins.zoom.zoom.pinch.enabled = false;
+            chartInstance.options.plugins.zoom.zoom.drag.enabled = true;
+            hint.textContent = "操作: マウスドラッグで範囲を選択して拡大";
+        } else {
+            chartInstance.options.plugins.zoom.pan.enabled = true;
+            chartInstance.options.plugins.zoom.zoom.wheel.enabled = true;
+            chartInstance.options.plugins.zoom.zoom.pinch.enabled = true;
+            chartInstance.options.plugins.zoom.zoom.drag.enabled = false;
+            hint.textContent = "操作: ドラッグで移動、ホイールで拡大縮小";
+        }
+        chartInstance.update();
+    }
+
+    function resetZoom() {
+        if(chartInstance) {
+            chartInstance.resetZoom();
+            calculateStats(activeSeries);
+        }
+    }
+
+    function calculateStats(datasets) {
+        if(!chartInstance || !datasets.length) return;
+
+        const headerRow = document.getElementById('statsHeader');
+        const minRow = document.getElementById('statsMin');
+        const maxRow = document.getElementById('statsMax');
+        const avgRow = document.getElementById('statsAvg');
+
+        headerRow.innerHTML = '<th>項目</th>';
+        minRow.innerHTML = '<td>最小値</td>';
+        maxRow.innerHTML = '<td>最大値</td>';
+        avgRow.innerHTML = '<td>平均値</td>';
+
+        const xScale = chartInstance.scales.x;
+        const xMin = xScale.min;
+        const xMax = xScale.max;
+        const startTime = new Date(document.getElementById('startTimeInput').value).getTime();
+
+        datasets.forEach(ds => {
+            const colIdx = ds._rawIdx;
+            const mult = ds._baseMult;
+            
+            let min = Infinity, max = -Infinity, sum = 0, count = 0;
+            
+            for(let i=0; i<rawData.length; i++) {
+                const timeVal = startTime + rawData[i][0] * 1000;
+                if (timeVal < xMin || timeVal > xMax) continue;
+
+                const val = rawData[i][colIdx] * mult;
+                if (val < min) min = val;
+                if (val > max) max = val;
+                sum += val;
+                count++;
+            }
+            
+            if (count > 0) {
+                headerRow.innerHTML += `<th>${ds.label}</th>`;
+                minRow.innerHTML += `<td>${min.toFixed(3)}</td>`;
+                maxRow.innerHTML += `<td>${max.toFixed(3)}</td>`;
+                avgRow.innerHTML += `<td>${(sum/count).toFixed(3)}</td>`;
+            }
+        });
+    }
+
+    function downloadImage() {
+        if (!chartInstance) return;
+        const link = document.createElement('a');
+        link.download = 'chart_analysis.png';
+        link.href = chartInstance.toBase64Image();
+        link.click();
+    }
+
+    function exportExcel() {
+        if(!rawData.length) { alert("データがありません"); return; }
+        const wb = XLSX.utils.book_new();
+        const ws_data = [];
+        
+        const exportHeaders = ["日時", "経過秒"];
+        const inputs = document.querySelectorAll('.series-list .series-item input[type="checkbox"]');
+        const activeIndices = [];
+        
+        inputs.forEach(chk => {
+            if(chk.checked) {
+                const idx = parseInt(chk.dataset.idx);
+                const name = document.getElementById(`name_${idx}`).value;
+                exportHeaders.push(name);
+                activeIndices.push({idx, type: chk.dataset.type});
+            }
+        });
+        ws_data.push(exportHeaders);
+
+        const startDate = new Date(document.getElementById('startTimeInput').value).getTime();
+        const voltUnit = document.getElementById('voltUnit').value;
+        const voltMult = (voltUnit === 'mV') ? 1000 : 1;
+
+        rawData.forEach(row => {
+            const t = row[0];
+            const dt = new Date(startDate + t * 1000);
+            const line = [dt.toLocaleString(), t];
+            
+            activeIndices.forEach(item => {
+                let val = row[item.idx];
+                if(item.type === 'volt') val *= voltMult;
+                line.push(val);
+            });
+            ws_data.push(line);
+        });
+
+        const ws = XLSX.utils.aoa_to_sheet(ws_data);
+        XLSX.utils.book_append_sheet(wb, ws, "LogData");
+        XLSX.writeFile(wb, "mfc_data_export.xlsx");
+    }
 </script>
 </body>
 </html>
